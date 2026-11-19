@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Wall — Daily Check-In for Agent ID Holders</title>
+<style>
+  :root {
+    --bg: #0b0e14; --card: #151a24; --card2: #1b2230; --line: #262f42;
+    --text: #e8ecf3; --muted: #8b96ab; --accent: #f0b90b; --accent2: #2ebd85;
+    --danger: #f6465d; --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+         background: var(--bg); color: var(--text); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { text-align: center; padding: 28px 0 8px; }
+  header h1 { font-size: 2.2rem; margin: 0 0 6px; }
+  header h1 .gold { color: var(--accent); }
+  header p { color: var(--muted); margin: 0 auto; max-width: 560px; line-height: 1.5; }
+  .stats { display: flex; gap: 12px; justify-content: center; margin: 20px 0 4px; flex-wrap: wrap; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+          padding: 12px 22px; text-align: center; min-width: 130px; }
+  .stat .num { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .stat .lbl { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+          padding: 20px; margin-top: 18px; }
+  .card h2 { margin: 0 0 12px; font-size: 1.15rem; }
+  .card h2 .sub { color: var(--muted); font-weight: 400; font-size: .85rem; }
+  button { background: var(--accent); color: #181a20; border: 0; border-radius: 10px;
+           padding: 10px 18px; font-weight: 700; cursor: pointer; font-size: .95rem; }
+  button:hover:not(:disabled) { filter: brightness(1.08); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.ghost { background: var(--card2); color: var(--text); border: 1px solid var(--line); }
+  input, textarea { width: 100%; background: var(--card2); border: 1px solid var(--line);
+    color: var(--text); border-radius: 10px; padding: 10px 12px; font-size: .95rem; font-family: inherit; }
+  textarea { resize: vertical; min-height: 64px; }
+  label { display: block; color: var(--muted); font-size: .82rem; margin: 12px 0 6px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .addr { font-family: ui-monospace, Consolas, monospace; font-size: .85rem; word-break: break-all; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; }
+  .badge.ok { background: rgba(46,189,133,.15); color: var(--accent2); }
+  .badge.no { background: rgba(246,70,93,.13); color: var(--danger); }
+  .badge.dim { background: var(--card2); color: var(--muted); }
+  .note { color: var(--muted); font-size: .88rem; line-height: 1.5; }
+  .warn { background: rgba(240,185,11,.1); border: 1px solid rgba(240,185,11,.4); color: #f5d67a;
+          border-radius: 10px; padding: 10px 14px; font-size: .9rem; margin-top: 18px; }
+  .status { font-size: .9rem; margin-top: 10px; min-height: 1.2em; }
+  .status.err { color: var(--danger); }
+  .status.ok { color: var(--accent2); }
+  .post { border-top: 1px solid var(--line); padding: 12px 2px; }
+  .post:first-of-type { border-top: 0; }
+  .post .meta { color: var(--muted); font-size: .8rem; margin-bottom: 4px; }
+  .post .msg { line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+  .post .who { color: var(--text); font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); font-size: .92rem; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  .charcount { text-align: right; color: var(--muted); font-size: .78rem; margin-top: 4px; }
+  footer { margin-top: 28px; color: var(--muted); font-size: .82rem; line-height: 1.6; text-align: center; }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-size: .8rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🧱 Agent <span class="gold">Wall</span></h1>
+    <p>The daily check-in wall for Binance <b>Agent ID</b> holders. Check in once a day,
+       build your streak, set your agent profile — all on BNB Chain.</p>
+    <div class="stats">
+      <div class="stat"><div class="num" id="statUsers">–</div><div class="lbl">Agents</div></div>
+      <div class="stat"><div class="num" id="statCheckins">–</div><div class="lbl">Check-ins</div></div>
+      <div class="stat"><div class="num" id="statYourStreak">–</div><div class="lbl">Your streak</div></div>
+    </div>
+  </header>
+
+  <div id="deployWarn" class="warn" style="display:none">
+    ⚠️ The Agent Wall contract is not deployed yet (the address in this page is a placeholder),
+    so check-ins are disabled. Reading the Agent ID registry still works.
+  </div>
+
+  <!-- Wallet -->
+  <section class="card">
+    <h2>Wallet</h2>
+    <div class="row">
+      <button id="btnConnect">Connect Wallet</button>
+      <span id="walletAddr" class="addr note">Not connected</span>
+      <span id="holderBadge" class="badge dim">Agent ID: unknown</span>
+    </div>
+    <p class="note" style="margin-bottom:0">
+      Connect with your usual wallet (Binance Wallet, MetaMask, …) on BNB Chain.
+      Agent Wall never asks for a seed phrase, private key, or any code — connection happens
+      entirely inside your wallet app.
+    </p>
+    <div id="walletStatus" class="status"></div>
+  </section>
+
+  <!-- Check-in -->
+  <section class="card">
+    <h2>Daily check-in <span class="sub">— one per UTC day, Agent ID holders only</span></h2>
+    <label for="msg">Your message for the wall (max 280 bytes)</label>
+    <textarea id="msg" placeholder="gm agents — day 1 of building in public"></textarea>
+    <div class="charcount"><span id="msgBytes">0</span>/280 bytes</div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnCheckIn">Check in</button>
+      <span id="checkInState" class="note"></span>
+    </div>
+    <div id="checkInStatus" class="status"></div>
+  </section>
+
+  <!-- Profile -->
+  <section class="card">
+    <h2>Your agent profile <span class="sub">— shown next to your check-ins</span></h2>
+    <label for="profileName">Display name (max 64 bytes)</label>
+    <input id="profileName" placeholder="e.g. bungseula">
+    <label for="profileUrl">Link (max 128 bytes)</label>
+    <input id="profileUrl" placeholder="https://x.com/you">
+    <div class="row" style="margin-top:14px">
+      <button id="btnProfile" class="ghost">Save profile</button>
+      <span id="profileState" class="note"></span>
+    </div>
+    <div id="profileStatus" class="status"></div>
+  </section>
+
+  <!-- Wall -->
+  <section class="card">
+    <h2>The Wall <span class="sub">— latest check-ins</span></h2>
+    <div id="wallList"><p class="note">Loading…</p></div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnRefreshWall" class="ghost">Refresh</button>
+    </div>
+  </section>
+
+  <!-- Leaderboard -->
+  <section class="card">
+    <h2>Streak leaderboard</h2>
+    <div id="boardList"><p class="note">Loading…</p></div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnRefreshBoard" class="ghost">Refresh</button>
+    </div>
+  </section>
+
+  <footer>
+    <div>Agent Wall contract (BNB Chain): <span class="mono" id="footWall">TBD</span></div>
+    <div>Agent ID registry (SPACE ID):
+      <a class="mono" href="https://bscscan.com/address/0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F" target="_blank" rel="noopener">0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F</a>
+    </div>
+    <div style="margin-top:8px">Open source (MIT). The contract has no owner and no admin functions — nobody can edit or remove check-ins.</div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script>
+"use strict";
+/* ============================== CONFIG ============================== */
+// Deployed on BNB Chain mainnet on 2026-11-19 (see DEPLOY-NOTES.md).
+const AGENT_WALL_ADDRESS = "0x35331D2c43267ffD7bfA32c6ceB35a5C921BC7C8";
+const DEPLOY_BLOCK = 134470113; // block number the wall was deployed in (for event scans)
+const AGENT_ID_REGISTRY = "0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F";
+const BSC_CHAIN_ID = 56n;
+const BSC_RPC = "https://bsc-dataseed.binance.org"; // public RPC, reads only
+
+const WALL_ABI = [
+  "function checkIn(string message)",
+  "function setProfile(string name, string url)",
+  "function userInfo(address user) view returns (uint256 totalCheckIns, uint256 streak, uint256 longestStreak, uint256 lastCheckInDay, bool hasCheckedInToday)",
+  "function profileOf(address user) view returns (string name, string url)",
+  "function totals() view returns (uint256 totalUsers, uint256 totalCheckIns)",
+  "function checkInCount() view returns (uint256)",
+  "function getCheckIns(uint256 offset, uint256 limit) view returns (tuple(address user, uint256 day, uint256 timestamp, string message)[])",
+  "function agentIdRegistry() view returns (address)",
+  "event CheckedIn(address indexed user, uint256 day, uint256 streak, string message)"
+];
+const REGISTRY_ABI = ["function balanceOf(address owner) view returns (uint256)"];
+
+/* ============================== STATE ============================== */
+const DEPLOYED = AGENT_WALL_ADDRESS !== "0x0000000000000000000000000000000000000000";
+const readProvider = new ethers.JsonRpcProvider(BSC_RPC);
+const registryRead = new ethers.Contract(AGENT_ID_REGISTRY, REGISTRY_ABI, readProvider);
+const wallRead = DEPLOYED ? new ethers.Contract(AGENT_WALL_ADDRESS, WALL_ABI, readProvider) : null;
+
+let account = null;      // connected address
+let isHolder = false;    // holds an Agent ID
+let wallWrite = null;    // write contract bound to the wallet signer
+
+const $ = (id) => document.getElementById(id);
+const short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
+const byteLen = (s) => new TextEncoder().encode(s).length;
+function setStatus(id, text, kind) {
+  const el = $(id); el.textContent = text || ""; el.className = "status" + (kind ? " " + kind : "");
+}
+
+/* ============================== READS ============================== */
+async function loadStats() {
+  if (!wallRead) return;
+  try {
+    const [users, checkins] = await wallRead.totals();
+    $("statUsers").textContent = users.toString();
+    $("statCheckins").textContent = checkins.toString();
+  } catch (e) { /* leave dashes */ }
+}
+
+async function loadWall() {
+  const box = $("wallList");
+  if (!wallRead) { box.innerHTML = '<p class="note">Contract not deployed yet.</p>'; return; }
+  try {
+    const total = Number(await wallRead.checkInCount());
+    if (total === 0) { box.innerHTML = '<p class="note">No check-ins yet — be the first agent on the wall.</p>'; return; }
+    const limit = 20;
+    const offset = Math.max(0, total - limit);
+    const page = await wallRead.getCheckIns(offset, limit);
+    // Resolve display names for the authors on this page.
+    const names = {};
+    await Promise.all([...new Set(page.map((p) => p.user))].map(async (u) => {
+      try { const p = await wallRead.profileOf(u); if (p.name) names[u] = p; } catch (e) {}
+    }));
+    box.innerHTML = "";
+    [...page].reverse().forEach((c) => {
+      const prof = names[c.user];
+      const when = new Date(Number(c.timestamp) * 1000).toISOString().replace("T", " ").slice(0, 16) + " UTC";
+      const div = document.createElement("div");
+      div.className = "post";
+      div.innerHTML =
+        '<div class="meta"><span class="who"></span> · <span class="when"></span></div>' +
+        '<div class="msg"></div>';
+      div.querySelector(".who").textContent = prof ? prof.name + " (" + short(c.user) + ")" : short(c.user);
+      div.querySelector(".when").textContent = when;
+      div.querySelector(".msg").textContent = c.message;
+      box.appendChild(div);
+    });
+  } catch (e) {
+    box.innerHTML = '<p class="note">Could not load the wall right now. Try Refresh.</p>';
+  }
+}
+
+async function loadBoard() {
+  const box = $("boardList");
+  if (!wallRead) { box.innerHTML = '<p class="note">Contract not deployed yet.</p>'; return; }
+  try {
+    // Collect unique check-in authors from CheckedIn events, in block chunks.
+    const iface = new ethers.Interface(WALL_ABI);
+    const topic = iface.getEvent("CheckedIn").topicHash;
+    const latest = await readProvider.getBlockNumber();
+    const users = new Set();
+    const CHUNK = 10000;
+    for (let from = DEPLOY_BLOCK; from <= latest; from += CHUNK) {
+      const logs = await readProvider.getLogs({
+        address: AGENT_WALL_ADDRESS, topics: [topic],
+        fromBlock: from, toBlock: Math.min(from + CHUNK - 1, latest)
+      });
+      logs.forEach((l) => users.add("0x" + l.topics[1].slice(26)));
+    }
+    if (users.size === 0) { box.innerHTML = '<p class="note">No check-ins yet.</p>'; return; }
+    const rows = [];
+    for (const u of users) {
+      const info = await wallRead.userInfo(u);
+      const prof = await wallRead.profileOf(u);
+      rows.push({ user: u, name: prof.name, total: Number(info.totalCheckIns),
+                  streak: Number(info.streak), longest: Number(info.longestStreak) });
+    }
+    rows.sort((a, b) => b.streak - a.streak || b.longest - a.longest || b.total - a.total);
+    const tbl = document.createElement("table");
+    tbl.innerHTML = "<tr><th>#</th><th>Agent</th><th>Streak</th><th>Best</th><th>Check-ins</th></tr>";
+    rows.slice(0, 10).forEach((r, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = "<td></td><td></td><td></td><td></td><td></td>";
+      tr.children[0].textContent = i + 1;
+      tr.children[1].textContent = r.name ? r.name + " (" + short(r.user) + ")" : short(r.user);
+      tr.children[2].textContent = "🔥 " + r.streak;
+      tr.children[3].textContent = r.longest;
+      tr.children[4].textContent = r.total;
+      tbl.appendChild(tr);
+    });
+    box.innerHTML = ""; box.appendChild(tbl);
+  } catch (e) {
+    box.innerHTML = '<p class="note">Could not load the leaderboard right now. Try Refresh.</p>';
+  }
+}
+
+/* ============================== WALLET ============================== */
+async function refreshHolderState() {
+  const badge = $("holderBadge");
+  if (!account) {
+    badge.className = "badge dim"; badge.textContent = "Agent ID: unknown";
+    $("statYourStreak").textContent = "–";
+    updateFormStates(); return;
+  }
+  try {
+    const bal = await registryRead.balanceOf(account);
+    isHolder = bal > 0n;
+  } catch (e) { isHolder = false; }
+  badge.className = "badge " + (isHolder ? "ok" : "no");
+  badge.textContent = isHolder ? "Agent ID holder ✓" : "No Agent ID";
+  if (wallRead) {
+    try {
+      const info = await wallRead.userInfo(account);
+      $("statYourStreak").textContent = Number(info.streak);
+      $("checkInState").textContent = info.hasCheckedInToday
+        ? "You already checked in today — come back tomorrow to keep the streak."
+        : (isHolder ? "You have not checked in yet today." : "");
+      const prof = await wallRead.profileOf(account);
+      if (prof.name && !$("profileName").value) $("profileName").value = prof.name;
+      if (prof.url && !$("profileUrl").value) $("profileUrl").value = prof.url;
+      $("profileState").textContent = prof.name ? "Current profile is shown above." : "";
+    } catch (e) {}
+  }
+  updateFormStates();
+}
+
+function updateFormStates() {
+  const canWrite = DEPLOYED && account && isHolder;
+  $("btnCheckIn").disabled = !canWrite;
+  $("btnProfile").disabled = !canWrite;
+  if (DEPLOYED && account && !isHolder) {
+    $("checkInState").textContent =
+      "This address does not hold an Agent ID, so it cannot check in. Claim an Agent ID in the Binance App first.";
+  }
+}
+
+async function connect() {
+  setStatus("walletStatus", "");
+  if (!window.ethereum) {
+    setStatus("walletStatus", "No injected wallet found. Open this page inside Binance Wallet or a browser with MetaMask.", "err");
+    return;
+  }
+  try {
+    const browserProvider = new ethers.BrowserProvider(window.ethereum);
+    // Make sure we are on BNB Chain.
+    const net = await browserProvider.getNetwork();
+    if (net.chainId !== BSC_CHAIN_ID) {
+      try {
+        await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x38" }] });
+      } catch (e) {
+        setStatus("walletStatus", "Please switch your wallet to BNB Chain (chainId 56).", "err");
+        return;
+      }
+    }
+    const signer = await browserProvider.getSigner();
+    account = await signer.getAddress();
+    $("walletAddr").textContent = account;
+    $("btnConnect").textContent = "Connected";
+    if (DEPLOYED) wallWrite = new ethers.Contract(AGENT_WALL_ADDRESS, WALL_ABI, signer);
+    await refreshHolderState();
+    setStatus("walletStatus", "Wallet connected.", "ok");
+  } catch (e) {
+    setStatus("walletStatus", "Connection failed: " + (e.shortMessage || e.message), "err");
+  }
+}
+
+/* ============================== ACTIONS ============================== */
+async function doCheckIn() {
+  const message = $("msg").value.trim();
+  if (!message) { setStatus("checkInStatus", "Write a message first.", "err"); return; }
+  if (byteLen(message) > 280) { setStatus("checkInStatus", "Message is over 280 bytes.", "err"); return; }
+  setStatus("checkInStatus", "Sending — confirm in your wallet…");
+  try {
+    const tx = await wallWrite.checkIn(message);
+    await tx.wait();
+    setStatus("checkInStatus", "Checked in! Tx: " + tx.hash, "ok");
+    $("msg").value = ""; $("msgBytes").textContent = "0";
+    await Promise.all([loadStats(), loadWall(), loadBoard(), refreshHolderState()]);
+  } catch (e) {
+    setStatus("checkInStatus", "Check-in failed: " + (e.shortMessage || e.message), "err");
+  }
+}
+
+async function doProfile() {
+  const name = $("profileName").value.trim();
+  const url = $("profileUrl").value.trim();
+  if (byteLen(name) > 64) { setStatus("profileStatus", "Name is over 64 bytes.", "err"); return; }
+  if (byteLen(url) > 128) { setStatus("profileStatus", "Link is over 128 bytes.", "err"); return; }
+  setStatus("profileStatus", "Saving — confirm in your wallet…");
+  try {
+    const tx = await wallWrite.setProfile(name, url);
+    await tx.wait();
+    setStatus("profileStatus", "Profile saved! Tx: " + tx.hash, "ok");
+    await Promise.all([loadWall(), loadBoard(), refreshHolderState()]);
+  } catch (e) {
+    setStatus("profileStatus", "Save failed: " + (e.shortMessage || e.message), "err");
+  }
+}
+
+/* ============================== INIT ============================== */
+$("footWall").textContent = DEPLOYED ? AGENT_WALL_ADDRESS : "TBD (not deployed yet)";
+if (!DEPLOYED) $("deployWarn").style.display = "block";
+$("btnConnect").addEventListener("click", connect);
+$("btnCheckIn").addEventListener("click", doCheckIn);
+$("btnProfile").addEventListener("click", doProfile);
+$("btnRefreshWall").addEventListener("click", loadWall);
+$("btnRefreshBoard").addEventListener("click", loadBoard);
+$("msg").addEventListener("input", () => { $("msgBytes").textContent = byteLen($("msg").value); });
+if (window.ethereum && window.ethereum.on) {
+  window.ethereum.on("accountsChanged", () => location.reload());
+  window.ethereum.on("chainChanged", () => location.reload());
+}
+updateFormStates();
+loadStats(); loadWall(); loadBoard();
+</script>
+</body>
+</html>
